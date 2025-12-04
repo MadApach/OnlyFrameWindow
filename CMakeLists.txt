@@ -5,6 +5,9 @@ project(OnlyFrameWindow VERSION 1.0)
 # Найти пакет Qt Widgets (для Qt6)
 find_package(Qt6 COMPONENTS Widgets REQUIRED)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Включаем автоматическую обработку MOC, UIC, RCC
 # Это автоматически обрабатывает Q_OBJECT в заголовочных файлах
 qt_standard_project_setup()
