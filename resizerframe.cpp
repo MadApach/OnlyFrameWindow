@@ -3,6 +3,7 @@
 #include <QCursor>
 #include <QWindow>
 #include <QPushButton>
+#include <QGuiApplication>
 
 ResizerFrame::ResizerFrame(Qt::Edges type, QWidget *parent)
     : QFrame(parent), m_edgeType(type)
