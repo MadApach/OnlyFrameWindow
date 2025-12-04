@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-
     strategy:
       fail-fast: false
       matrix:
@@ -18,21 +17,34 @@ jobs:
 
     steps:
     - name: Checkout repository
-      # Обновлено до v4 (или выше)
-      uses: actions/checkout@v4 
+      uses: actions/checkout@v4
 
-    # Используем альтернативное действие для установки Qt, чтобы избежать ошибки "repository not found"
-    - name: Setup Qt
-      uses: jurplewa/qbuild-action@v4
+    # Устанавливаем Python и aqtinstall для загрузки Qt SDK
+    - name: Install aqtinstall (Python package)
+      uses: actions/setup-python@v4
       with:
-        version: '6.6.1'
-        arch: 'windows_amd64'
+        python-version: '3.x'
+    - run: pip install aqtinstall
+
+    - name: Install Qt 6.6.1 (Linux/Windows specific)
+      run: |
+        # Определяем платформу, компилятор и архитектуру
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          aqt install 6.6.1 windows desktop win64_mingw_kit -O ${{ github.workspace }}/Qt
+          echo "QT_DIR=${{ github.workspace }}\Qt\6.6.1\mingw_64" >> $GITHUB_ENV
+        else
+          # Установка системных зависимостей для Qt на Ubuntu
+          sudo apt-get update && sudo apt-get install -y build-essential libgl1-mesa-dev
+          aqt install 6.6.1 linux desktop gcc_64 -O ${{ github.workspace }}/Qt
+          echo "QT_DIR=${{ github.workspace }}/Qt/6.6.1/gcc_64" >> $GITHUB_ENV
+        fi
 
     - name: Configure CMake
       run: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        # Используем qmake/cmake из установленного Qt SDK
+        cmake .. -DCMAKE_PREFIX_PATH=${{ env.QT_DIR }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build Project
       run: cmake --build build --config ${{ matrix.build_type }}
@@ -41,20 +53,20 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: |
         cd build/Release
+        # Добавляем путь к windeployqt.exe в PATH временно
+        export PATH="$PATH:${{ env.QT_DIR }}/bin"
         windeployqt.exe OnlyFrameWindow.exe 
 
     - name: Archive and Upload Artifacts (Windows)
       if: matrix.os == 'windows-latest'
-      # Обновлено до v4 (или выше)
-      uses: actions/upload-artifact@v4 
+      uses: actions/upload-artifact@v4
       with:
         name: OnlyFrameWindow-Windows-Build
         path: build/Release/
 
     - name: Archive and Upload Artifacts (Linux)
       if: matrix.os == 'ubuntu-latest'
-      # Обновлено до v4 (или выше)
-      uses: actions/upload-artifact@v4 
+      uses: actions/upload-artifact@v4
       with:
         name: OnlyFrameWindow-Linux-Build
         path: build/
