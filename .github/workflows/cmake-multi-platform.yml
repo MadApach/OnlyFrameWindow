@@ -30,8 +30,8 @@ jobs:
       shell: powershell
       run: |
         # Используем исправленный идентификатор архитектуры: win64_mingw
-        aqt install-qt windows desktop 6.6.1 win64_mingw -O $env:GITHUB_WORKSPACE/Qt
-        $QT_DIR = Join-Path $env:GITHUB_WORKSPACE "Qt\6.6.1\mingw_64"
+        aqt install-qt windows desktop 6.6.1 win64_msvc2019_64 -O $env:GITHUB_WORKSPACE/Qt
+        $QT_DIR = Join-Path $env:GITHUB_WORKSPACE "Qt\6.6.1\msvc2019_64"
         echo "QT_DIR=$QT_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
 
     - name: Install Qt 6.6.1 (Linux)
