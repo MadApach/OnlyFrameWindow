@@ -26,24 +26,28 @@ jobs:
         python-version: '3.x'
     - run: pip install aqtinstall
 
-    - name: Install Qt 6.6.1 (Linux/Windows specific)
+    - name: Install Qt 6.6.1
+      # Шаг для Windows (PowerShell)
+      if: matrix.os == 'windows-latest'
+      shell: powershell
       run: |
-        # Определяем платформу, компилятор и архитектуру
-        if [ "${{ runner.os }}" == "Windows" ]; then
-          aqt install 6.6.1 windows desktop win64_mingw_kit -O ${{ github.workspace }}/Qt
-          echo "QT_DIR=${{ github.workspace }}\Qt\6.6.1\mingw_64" >> $GITHUB_ENV
-        else
-          # Установка системных зависимостей для Qt на Ubuntu
-          sudo apt-get update && sudo apt-get install -y build-essential libgl1-mesa-dev
-          aqt install 6.6.1 linux desktop gcc_64 -O ${{ github.workspace }}/Qt
-          echo "QT_DIR=${{ github.workspace }}/Qt/6.6.1/gcc_64" >> $GITHUB_ENV
-        fi
+        aqt install-qt 6.6.1 windows desktop win64_mingw_kit -O $env:GITHUB_WORKSPACE/Qt
+        $QT_DIR = Join-Path $env:GITHUB_WORKSPACE "Qt\6.6.1\mingw_64"
+        echo "QT_DIR=$QT_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+
+    - name: Install Qt 6.6.1 (Linux)
+      # Шаг для Linux (Bash)
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
+      run: |
+        sudo apt-get update && sudo apt-get install -y build-essential libgl1-mesa-dev
+        aqt install-qt 6.6.1 linux desktop gcc_64 -O $GITHUB_WORKSPACE/Qt
+        echo "QT_DIR=$GITHUB_WORKSPACE/Qt/6.6.1/gcc_64" >> $GITHUB_ENV
 
     - name: Configure CMake
       run: |
         mkdir build
         cd build
-        # Используем qmake/cmake из установленного Qt SDK
         cmake .. -DCMAKE_PREFIX_PATH=${{ env.QT_DIR }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
     - name: Build Project
@@ -51,11 +55,11 @@ jobs:
 
     - name: Run windeployqt (Windows only)
       if: matrix.os == 'windows-latest'
+      shell: powershell
       run: |
+        $windeployqtPath = Join-Path $env:QT_DIR "bin\windeployqt.exe"
         cd build/Release
-        # Добавляем путь к windeployqt.exe в PATH временно
-        export PATH="$PATH:${{ env.QT_DIR }}/bin"
-        windeployqt.exe OnlyFrameWindow.exe 
+        & $windeployqtPath OnlyFrameWindow.exe 
 
     - name: Archive and Upload Artifacts (Windows)
       if: matrix.os == 'windows-latest'
